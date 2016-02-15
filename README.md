@@ -3,7 +3,9 @@
 Yet another probably-more-precise music tempo analysis based on HTML/JavaScript  
 さらにもう一つのテンポアナライザ、おそらくより正確になります。HTML/JavaScript に基づきます
 
-:warning: Delayed
+:disappointed: Pondering
 ---------
 
-反正。。至少几周内不会有啥动静吧。。作业都没解决（摊手
+窝的作业。。好像快要做完了。。啊不还有地理作业。。手动再见
+
+有没有漏掉什么。。(´Д` ) 好方好方好方啊啊啊啊
