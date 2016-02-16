@@ -12,6 +12,7 @@
       var meter = bpm.create('bpm-canvas');
       window.addEventListener('keydown', function (e) {
         if (e.keyCode === 90 || e.keyCode === 88) meter.pat();
+        else if (e.keyCode === 13) meter.finish();
       });
     </script>
   </body>
