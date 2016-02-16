@@ -18,6 +18,9 @@
       Math.round(g1 + (g2 - g1) * x).toString() + ',' +
       Math.round(b1 + (b2 - b1) * x).toString() + ')';
   };
+  var num_interpolate = function (a, b, x) {
+    if (x <= 0) return a; else if (x >= 1) return b; else return a + (b - a) * x;
+  };
 
   bpm.draw_history_and_estimation = function (dt) {
     var w = this.canvas.clientWidth, h = this.canvas.clientHeight;
@@ -93,12 +96,26 @@
       this.drawctx.beginPath();
       this.drawctx.arc(this._p_x[i], this._p_y[i], 4, 0, 2 * Math.PI);
       this.drawctx.fill();
+      if (i > 0) {
+        this.drawctx.beginPath();
+        this.drawctx.moveTo(this._p_x[i - 1], this._p_y[i - 1]);
+        this.drawctx.lineTo(this._p_x[i], this._p_y[i]);
+        this.drawctx.stroke();
+      }
     }
     if (dt < 1500) {
+      var prog = (dt / 1500 * this.records.length - cur_idx);
       this.drawctx.beginPath();
-      this.drawctx.arc(this._p_x[cur_idx], this._p_y[cur_idx],
-        4 * (dt / 1500 * this.records.length - cur_idx), 0, 2 * Math.PI);
+      this.drawctx.arc(this._p_x[cur_idx], this._p_y[cur_idx], 4 * prog, 0, 2 * Math.PI);
       this.drawctx.fill();
+      if (cur_idx > 0) {
+        this.drawctx.beginPath();
+        this.drawctx.moveTo(this._p_x[i - 1], this._p_y[i - 1]);
+        this.drawctx.lineTo(
+          num_interpolate(this._p_x[i - 1], this._p_x[i], prog),
+          num_interpolate(this._p_y[i - 1], this._p_y[i], prog));
+        this.drawctx.stroke();
+      }
     }
   };
 
