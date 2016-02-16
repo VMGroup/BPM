@@ -14,7 +14,17 @@
   bpm.refresh_display = function () {
     var w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     var dt = Date.now() - this.last_pat;
-    this.drawctx.fillStyle = '#ffffcc';
+    // #ccddaa -> #ffffcc
+    if (this.records.length === 0) {
+      this.drawctx.fillStyle = '#ccddaa';
+    } else if (this.records.length === 1) {
+      if (dt > 100) dt = 100;
+      this.drawctx.fillStyle = 'rgb(' + Math.round(0xcc + 0x33 * dt / 100).toString() + ',' +
+        Math.round(0xdd + 0x22 * dt / 100).toString() + ',' +
+        Math.round(0xaa + 0x22 * dt / 100).toString() + ')';
+    } else {
+      this.drawctx.fillStyle = '#ffffcc';
+    }
     this.drawctx.fillRect(0, 0, w, h);
     var history_ct = Math.ceil(w / 160) + 1;
     for (var i = 0; i < Math.min(history_ct, this.records.length - 1); ++i) {
