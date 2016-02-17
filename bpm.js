@@ -77,7 +77,7 @@
     }
     // Estimation
     if (this.is_finished) {
-      this.drawctx.fillStyle = rgb_interpolate(0x99, 0x99, 0x55, 0xff, 0xff, 0xff, dt / 100);
+      this.drawctx.fillStyle = 'rgba(135, 135, 85, ' + (1 - dt / 100).toString() + ')';
     } else {
       this.drawctx.fillStyle = '#999955';
     }
@@ -89,7 +89,7 @@
     this.drawctx.textBaseline = 'top';
     text_size = this.drawctx.measureText('m');  // Assertion: font must be monospace
     for (var i = 0; i < 3; ++i) {
-      if (dt < 200 && this.cur_eststr[i] !== this.last_eststr[i]) {
+      if (!this.is_finished && dt < 200 && this.cur_eststr[i] !== this.last_eststr[i]) {
         var dir = (this.cur_eststr[i] < this.last_eststr[i] ? 1 : -1);
         this.drawctx.fillStyle = 'rgba(135, 135, 85, ' + (1 - dt / 200).toString() + ')';
         this.drawctx.fillText(this.last_eststr[i], w - text_size.width * (3 - i) - 6, h * 0.5 + dir * 20 * ease_cubic_in(dt / 200));
