@@ -11,6 +11,13 @@
     canvas.height = 240;
   };
 
+  var ease_cubic_in = function (x) {
+    return x * x * x;
+  };
+  var ease_cubic_out = function (x) {
+    return 1 - (1 - x) * (1 - x) * (1 - x);
+  };
+
   var rgb_interpolate = function (r1, g1, b1, r2, g2, b2, x) {
     if (x <= 0) return 'rgb(' + r1.toString() + ',' + g1.toString() + ',' + b1.toString() + ')';
     else if (x >= 1) return 'rgb(' + r2.toString() + ',' + g2.toString() + ',' + b2.toString() + ')';
@@ -20,6 +27,29 @@
   };
   var num_interpolate = function (a, b, x) {
     if (x <= 0) return a; else if (x >= 1) return b; else return a + (b - a) * x;
+  };
+
+  bpm.calc_estimation = function (dt) {
+    var estimation_str = '---';
+    if (this.records.length > 8) {
+      // Average of:
+      // (1) Median of the intervals
+      // (2) Slope of line P0_P8
+      var intv_list = [0, 0, 0, 0, 0, 0, 0, 0];
+      for (var i = 0; i < 8; ++i)
+        intv_list[i] = this.records[this.records.length - 1 - i] - this.records[this.records.length - 2 - i];
+      intv_list.sort(function (a, b) { return a - b; });
+      // (3) Ignore cases where the beats are unstable
+      if (intv_list[7] - intv_list[0] <= intv_list[7] * 0.5) {
+        var e1 = 60000.0 / ((intv_list[3] + intv_list[4]) / 2);
+        var e2 = 60000.0 / ((this.records[this.records.length - 1] - this.records[this.records.length - 9]) / 9);
+        var estimation = (e1 + e2) / 2;
+        estimation_str = Math.round(estimation).toString();
+      }
+    }
+    while (estimation_str.length < 3) estimation_str = ' ' + estimation_str;
+    this.last_eststr = this.cur_eststr;
+    this.cur_eststr = estimation_str;
   };
 
   bpm.draw_history_and_estimation = function (dt) {
@@ -56,29 +86,18 @@
     var text_size = this.drawctx.measureText('Est.');
     this.drawctx.fillText('Est.', w - text_size.width - 6, h * 0.5);
     this.drawctx.font = '64px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
-    var estimation_str = '---';
     this.drawctx.textBaseline = 'top';
-    if (this.records.length > 8) {
-      // Average of:
-      // (1) Median of the intervals
-      // (2) Slope of line P0_P8
-      var intv_list = [0, 0, 0, 0, 0, 0, 0, 0];
-      for (var i = 0; i < 8; ++i)
-        intv_list[i] = this.records[this.records.length - 1 - i] - this.records[this.records.length - 2 - i];
-      intv_list.sort(function (a, b) { return a - b; });
-      // (3) Ignore cases where the beats are unstable
-      if (intv_list[7] - intv_list[0] <= intv_list[7] * 0.5) {
-        var e1 = 60000.0 / ((intv_list[3] + intv_list[4]) / 2);
-        var e2 = 60000.0 / ((this.records[this.records.length - 1] - this.records[this.records.length - 9]) / 9);
-        var estimation = (e1 + e2) / 2;
-        estimation_str = Math.round(estimation).toString();
+    text_size = this.drawctx.measureText('m');  // Assertion: font must be monospace
+    for (var i = 0; i < 3; ++i) {
+      if (dt < 200 && this.cur_eststr[i] !== this.last_eststr[i]) {
+        this.drawctx.fillStyle = 'rgba(135, 135, 85, ' + (1 - dt / 200).toString() + ')';
+        this.drawctx.fillText(this.last_eststr[i], w - text_size.width * (3 - i) - 6, h * 0.5 + 20 * ease_cubic_in(dt / 200));
+        this.drawctx.fillStyle = 'rgba(135, 135, 85, ' + (dt / 200).toString() + ')';
+        this.drawctx.fillText(this.cur_eststr[i], w - text_size.width * (3 - i) - 6, h * 0.5 - 20 * (1 - ease_cubic_out(dt / 200)));
+      } else {
+        this.drawctx.fillText(this.cur_eststr[i], w - text_size.width * (3 - i) - 6, h * 0.5);
       }
     }
-    while (estimation_str.length < 3) estimation_str = ' ' + estimation_str;
-    text_size = this.drawctx.measureText('m');  // Assertion: font must be monospace
-    for (var i = 0; i < 3; ++i)
-      this.drawctx.fillText(estimation_str[i], w - text_size.width * (3 - i) - 6, h * 0.5);
-    this.last_eststr = estimation_str;
   };
 
   bpm.draw_finishing = function (dt) {
@@ -155,6 +174,7 @@
     if (this.is_finished) return;
     this.last_pat = Date.now();
     this.records.push(this.last_pat);
+    this.calc_estimation();
     window.requestAnimationFrame(this.ticker);
   };
 
@@ -182,9 +202,11 @@
     ret.drawctx = canvas.getContext('2d');
     ret.last_pat = Date.now();
     ret.last_eststr = '---';
+    ret.cur_eststr = '---';
     ret.records = [];
     ret.is_finished = false;
     // Methods
+    ret.calc_estimation = bpm.calc_estimation;
     ret.draw_history_and_estimation = bpm.draw_history_and_estimation;
     ret.draw_finishing = bpm.draw_finishing;
     ret.refresh_display = bpm.refresh_display;
