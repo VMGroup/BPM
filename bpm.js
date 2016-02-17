@@ -74,8 +74,11 @@
         estimation_str = Math.round(estimation).toString();
       }
     }
-    text_size = this.drawctx.measureText(estimation_str);
-    this.drawctx.fillText(estimation_str, w - text_size.width - 6, h * 0.5);
+    while (estimation_str.length < 3) estimation_str = ' ' + estimation_str;
+    text_size = this.drawctx.measureText('m');  // Assertion: font must be monospace
+    for (var i = 0; i < 3; ++i)
+      this.drawctx.fillText(estimation_str[i], w - text_size.width * (3 - i) - 6, h * 0.5);
+    this.last_eststr = estimation_str;
   };
 
   bpm.draw_finishing = function (dt) {
@@ -178,6 +181,7 @@
     ret.canvas = canvas;
     ret.drawctx = canvas.getContext('2d');
     ret.last_pat = Date.now();
+    ret.last_eststr = '---';
     ret.records = [];
     ret.is_finished = false;
     // Methods
