@@ -42,7 +42,7 @@
       // (3) Ignore cases where the beats are unstable
       if (intv_list[7] - intv_list[0] <= intv_list[7] * 0.5) {
         var e1 = 60000.0 / ((intv_list[3] + intv_list[4]) / 2);
-        var e2 = 60000.0 / ((this.records[this.records.length - 1] - this.records[this.records.length - 9]) / 9);
+        var e2 = 60000.0 / ((this.records[this.records.length - 1] - this.records[this.records.length - 9]) / 8);
         var estimation = (e1 + e2) / 2;
         estimation_str = Math.round(estimation).toString();
       }
