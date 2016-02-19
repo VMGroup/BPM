@@ -52,6 +52,20 @@
     this.cur_eststr = estimation_str;
   };
 
+  bpm.calc_results = function () {
+    var n = this.records.length;
+    var avg_x = 0, avg_y = 0;
+    avg_x = (n - 1) / 2;  // 0-indexed
+    for (var i = 0; i < n; ++i) avg_y += this.records[i];
+    avg_y /= n;
+    var numr = 0, deno = 0;
+    for (var i = 0; i < n; ++i) {
+      numr += (i - avg_x) * (this.records[i] - avg_y);
+      deno += (i - avg_x) * (i - avg_x);
+    }
+    console.log(60000.0 / (numr / deno));
+  };
+
   bpm.draw_history_and_estimation = function (dt) {
     var w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     // History
@@ -182,6 +196,7 @@
   bpm.finish = function () {
     this.is_finished = true;
     this.last_pat = Date.now();
+    this.calc_results();
     window.requestAnimationFrame(this.ticker);
   };
 
@@ -208,6 +223,7 @@
     ret.is_finished = false;
     // Methods
     ret.calc_estimation = bpm.calc_estimation;
+    ret.calc_results = bpm.calc_results;
     ret.draw_history_and_estimation = bpm.draw_history_and_estimation;
     ret.draw_finishing = bpm.draw_finishing;
     ret.refresh_display = bpm.refresh_display;
