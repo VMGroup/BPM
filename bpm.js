@@ -180,6 +180,44 @@
     }
   };
 
+  var hsv_to_rgb = function (obj) {
+    var c = obj.v * obj.s;
+    var h = obj.h / 60;
+    var x = c * (1 - Math.abs(h % 2 - 1));
+    var r = 0, g = 0, b = 0;
+    switch (true) {
+      case (h >= 5): r = c; b = x; break;
+      case (h >= 4): r = x; b = c; break;
+      case (h >= 3): g = x; b = c; break;
+      case (h >= 2): g = c; b = x; break;
+      case (h >= 1): r = x; g = c; break;
+      case (h >= 0): r = c; g = x; break;
+      default: break;
+    }
+    return {
+      r: Math.floor((r + obj.v - c) * 255),
+      g: Math.floor((g + obj.v - c) * 255),
+      b: Math.floor((b + obj.v - c) * 255)
+    };
+  };
+  // Copyright (C) uoj.ac 2014-2016
+  var get_rating_colour = function (rating) {
+    if (rating < 1500) {
+      var H = 300 - (1500 - 850) * 300 / 1650, S = 30 + (1500 - 850) * 70 / 1650, V = 50 + (1500 - 850) * 50 / 1650;
+      if (rating < 300) rating = 300;
+      var k = (rating - 300) / 1200;
+      return hsv_to_rgb({h: H + (300 - H) * (1 - k), s: (30 + (S - 30) * k) / 100, v: (50 + (V - 50) * k) / 100});
+    }
+    if (rating > 2500) {
+      rating = 2500;
+    }
+    return hsv_to_rgb({h: 300 - (rating - 850) * 300 / 1650, s: (30 + (rating - 850) * 70 / 1650) / 100, v: (50 + (rating - 850) * 50 / 1650) / 100});
+  };
+  var get_tempo_colour = function (bpm) {
+    // Map BPM to UOJ rating
+    // [0, 96, 196] → [540, 1500, 2500]
+    return get_rating_colour(bpm * 10 + 540);
+  };
   bpm.draw_finishing = function (dt) {
     var w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     // 0 ~ 1.5 s: Display all history
@@ -221,14 +259,23 @@
     }
     // Analysis results
     else if (dt > 2000) {
-      cur_idx = Math.min(this.final_results.length - 1, Math.floor((dt - 2000) / 180 * this.final_results.length));
-      var last_x = 0;
+      cur_idx = Math.min(this.final_results.length - 1, Math.floor((dt - 2000) / 180));
+      var last_x = 0, cur_x;
       for (var i = 0; i <= cur_idx; ++i) {
         var prog = Math.min(1, (dt - (2000 + i * 180)) / 180);
-        //if (dt < 2500 && i == 0) console.log(dt, cur_idx, prog);
-        this.drawctx.fillStyle = 'rgba(0, 0, 0, ' + (prog * 0.3).toString() + ')';
-        this.drawctx.fillRect(last_x, 0, this.final_results[i][0] / (this.records.length - 1) * w, h);
-        last_x = this.final_results[i][0] / (this.records.length - 1) * w;
+        var c = get_tempo_colour(this.final_results[i][1]);
+        cur_x = this.final_results[i][0] / (this.records.length - 1) * w;
+        this.drawctx.fillStyle = 'rgba(' + c.r + ',' + c.g + ',' + c.b + ', ' + (prog * 0.3).toString() + ')';
+        this.drawctx.fillRect(last_x, 0, cur_x - last_x, h);
+
+        this.drawctx.fillStyle = 'rgba(0, 0, 0, ' + (prog * 0.66).toString() + ')';
+        var fontsize = 44;
+        this.drawctx.font = Math.round(fontsize).toString() + 'px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
+        this.drawctx.textBaseline = 'middle';
+        var text = Math.round(this.final_results[i][1]).toString();
+        var text_w = this.drawctx.measureText(text).width;
+        this.drawctx.fillText(text, (last_x + cur_x - text_w) / 2, h * (0.382 + 0.05 * i));
+        last_x = cur_x;
       }
     }
   };
