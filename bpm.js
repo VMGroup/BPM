@@ -259,16 +259,19 @@
     }
     // Analysis results
     else if (dt > 2000) {
+      var drag_opacity_mult = this.is_dragging ?
+        Math.max(0, 1 - (Date.now() - this.drag_start_time) / 180) :
+        Math.max(0, Math.min(1, (Date.now() - this.drag_end_time - 3000) / 180));
       cur_idx = Math.min(this.final_results.length - 1, Math.floor((dt - 2000) / 180));
       var last_x = 0, cur_x;
       for (var i = 0; i <= cur_idx; ++i) {
         var prog = Math.min(1, (dt - (2000 + i * 180)) / 180);
         var c = get_tempo_colour(this.final_results[i][1]);
         cur_x = this.final_results[i][0] / (this.records.length - 1) * w;
-        this.drawctx.fillStyle = 'rgba(' + c.r + ',' + c.g + ',' + c.b + ', ' + (prog * 0.3).toString() + ')';
+        this.drawctx.fillStyle = 'rgba(' + c.r + ',' + c.g + ',' + c.b + ', ' + (prog * 0.3 * drag_opacity_mult).toString() + ')';
         this.drawctx.fillRect(last_x, 0, cur_x - last_x, h);
 
-        this.drawctx.fillStyle = 'rgba(0, 0, 0, ' + (prog * 0.66).toString() + ')';
+        this.drawctx.fillStyle = 'rgba(0, 0, 0, ' + (prog * 0.66 * drag_opacity_mult).toString() + ')';
         this.drawctx.font = '44px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
         this.drawctx.textBaseline = 'middle';
         var text = Math.round(this.final_results[i][1]).toString();
@@ -283,26 +286,36 @@
       }
       if (dt > 2000 + this.final_results.length * 180) this.is_results_displayed = true;
     }
+    // Dragging?
+    if (this.is_dragging || this.drag_end_time >= Date.now() - 3000) {
+      var opacity = this.is_dragging ? 1 : Math.min(1, (3000 - Date.now() + this.drag_end_time) / 180);
+      this.drawctx.fillStyle = 'rgba(0, 0, 0, ' + (opacity * 0.3).toString() + ')';
+      var x1 = Math.min(this.drag_start_x, this.drag_current_x),
+          x2 = Math.max(this.drag_start_x, this.drag_current_x);
+      this.drawctx.fillRect(x1, 0, x2 - x1, h);
+    }
   };
   bpm.handle_mousedown = function (e) {
     if (this.is_results_displayed) {
       // Tested. Will work when canvas is in multiple cascaded div's or something.
-      var x = e.clientX - this.canvas.offsetLeft, y = e.clientY - this.canvas.offsetTop;
-      console.log(this, e, x, y);
+      var x = e.clientX - this.canvas.offsetLeft;
       this.is_dragging = true;
+      this.drag_start_x = x;
+      this.drag_start_time = Date.now();
+      window.requestAnimationFrame(this.ticker);
     }
   };
   bpm.handle_mousemove = function (e) {
     if (this.is_dragging) {
-      var x = e.clientX - this.canvas.offsetLeft, y = e.clientY - this.canvas.offsetTop;
-      console.log(x, y);
+      var x = e.clientX - this.canvas.offsetLeft;
+      this.drag_current_x = x;
     }
   };
   bpm.handle_mouseup = function (e) {
     if (this.is_results_displayed) {
-      var x = e.clientX - this.canvas.offsetLeft, y = e.clientY - this.canvas.offsetTop;
-      console.log(x, y);
+      var x = e.clientX - this.canvas.offsetLeft;
       this.is_dragging = false;
+      this.drag_end_time = Date.now();
     }
   };
 
@@ -328,7 +341,11 @@
     if (this.is_finished) {
       if (dt > 400) this.draw_finishing(dt - 100);
       else this.draw_history_and_estimation(dt);
-      if (dt < 20000) window.requestAnimationFrame(this.ticker);
+      if (dt < 2200 + this.final_results.length * 180
+        || this.is_dragging || this.drag_end_time > Date.now() - 4000)
+      {
+        window.requestAnimationFrame(this.ticker);
+      }
     } else {
       this.draw_history_and_estimation(dt);
       if (dt < 200) window.requestAnimationFrame(this.ticker);
@@ -388,8 +405,12 @@
     // Timers
     ret.ticker = (function (_ret) { return function () { _ret.refresh_display(); }; })(ret);
     window.requestAnimationFrame(ret.ticker);
-    // Event handlers
+    // Event handlers and preview-related stuff
     ret.is_dragging = false;
+    ret.drag_start_x = -1;
+    ret.drag_start_time = -1;
+    ret.drag_current_x = -1;
+    ret.drag_end_time = -1;
     ret.handle_mousedown = bpm.handle_mousedown;
     canvas.addEventListener('mousedown', (function (_self) { return function (e) { _self.handle_mousedown(e); }; })(ret));
     ret.handle_mousemove = bpm.handle_mousemove;
