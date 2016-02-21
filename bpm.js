@@ -110,11 +110,25 @@
   };
 
   bpm.calc_results = function () {
-    console.log(this.dyn_pro);
-    console.log(this.dyn_pro_route);
-    var result = get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, 0, this.records.length - 1);
-    console.log(60000.0 / result[0]);
-    console.log(result[1]);
+    var min_err = Infinity, min_err_k = -1;
+    for (var i = 1; i < 10; ++i) {
+      if (min_err > this.dyn_pro[this.dyn_pro.length - 1][i]) {
+        min_err = this.dyn_pro[this.dyn_pro.length - 1][i];
+        min_err_k = i;
+      }
+    }
+    var route = [], cur_idx = this.dyn_pro.length - 1;
+    for (; cur_idx !== -1; cur_idx = this.dyn_pro_route[cur_idx][min_err_k--]) {
+      route.push(cur_idx);
+    }
+    route.push(0);
+    route.reverse();
+    // XXX: Use map() or reduce()?
+    this.final_results = [];
+    for (var i = 1; i < route.length; ++i) {
+      this.final_results.push([route[i], 60000.0 / get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, route[i - 1], route[i])[0]]);
+    }
+    console.log(this.final_results);
   };
 
   bpm.draw_history_and_estimation = function (dt) {
