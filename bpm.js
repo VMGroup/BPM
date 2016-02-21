@@ -269,12 +269,16 @@
         this.drawctx.fillRect(last_x, 0, cur_x - last_x, h);
 
         this.drawctx.fillStyle = 'rgba(0, 0, 0, ' + (prog * 0.66).toString() + ')';
-        var fontsize = 44;
-        this.drawctx.font = Math.round(fontsize).toString() + 'px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
+        this.drawctx.font = '44px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
         this.drawctx.textBaseline = 'middle';
         var text = Math.round(this.final_results[i][1]).toString();
         var text_w = this.drawctx.measureText(text).width;
         this.drawctx.fillText(text, (last_x + cur_x - text_w) / 2, h * (0.382 + 0.05 * i));
+        this.drawctx.font = '24px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
+        text = (this.final_results[i][1] - Math.round(this.final_results[i][1])).toFixed(2);
+        if (text[0] !== '-') text = '+' + text;
+        text_w = this.drawctx.measureText(text).width;
+        this.drawctx.fillText(text, (last_x + cur_x - text_w) / 2, h * ((i <= 5 ? 0.502 : 0.262) + 0.05 * i));
         last_x = cur_x;
       }
     }
