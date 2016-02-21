@@ -219,6 +219,18 @@
         this.drawctx.stroke();
       }
     }
+    // Analysis results
+    else if (dt > 2000) {
+      cur_idx = Math.min(this.final_results.length - 1, Math.floor((dt - 2000) / 180 * this.final_results.length));
+      var last_x = 0;
+      for (var i = 0; i <= cur_idx; ++i) {
+        var prog = Math.min(1, (dt - (2000 + i * 180)) / 180);
+        //if (dt < 2500 && i == 0) console.log(dt, cur_idx, prog);
+        this.drawctx.fillStyle = 'rgba(0, 0, 0, ' + (prog * 0.3).toString() + ')';
+        this.drawctx.fillRect(last_x, 0, this.final_results[i][0] / (this.records.length - 1) * w, h);
+        last_x = this.final_results[i][0] / (this.records.length - 1) * w;
+      }
+    }
   };
 
   bpm.refresh_display = function () {
