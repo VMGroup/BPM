@@ -28,6 +28,14 @@
   var num_interpolate = function (a, b, x) {
     if (x <= 0) return a; else if (x >= 1) return b; else return a + (b - a) * x;
   };
+  var rgb_interpolate_obj = function (o1, o2, x) {
+    if (x <= 0) return o1; else if (x >= 1) return o2;
+    else return {
+      r: Math.round(o1.r + (o2.r - o1.r) * x),
+      g: Math.round(o1.g + (o2.g - o1.g) * x),
+      b: Math.round(o1.b + (o2.b - o1.b) * x)
+    };
+  };
 
   var get_regression = function (sum, wgh, sqr, l, r) {
     var n = r - l + 1;
@@ -288,11 +296,25 @@
     }
     // Dragging?
     if (this.is_dragging || this.drag_end_time >= Date.now() - 3000) {
+      var c = this.is_dragging ? { r: 0, g: 0, b: 0 } :
+        rgb_interpolate_obj({ r: 0, g: 0, b: 0 }, get_tempo_colour(this.drag_range_est[0]), (Date.now() - this.drag_end_time) / 180);
       var opacity = this.is_dragging ? 1 : Math.min(1, (3000 - Date.now() + this.drag_end_time) / 180);
-      this.drawctx.fillStyle = 'rgba(0, 0, 0, ' + (opacity * 0.3).toString() + ')';
+      this.drawctx.fillStyle = 'rgba(' + c.r + ',' + c.g + ',' + c.b + ', ' + (opacity * 0.3).toString() + ')';
       var x1 = Math.min(this.drag_start_x, this.drag_current_x),
           x2 = Math.max(this.drag_start_x, this.drag_current_x);
       this.drawctx.fillRect(x1, 0, x2 - x1, h);
+      if (!this.is_dragging) {
+        opacity = Math.min(opacity, (Date.now() - this.drag_end_time) / 180);
+        this.drawctx.fillStyle = 'rgba(0, 0, 0, ' + (opacity * 0.66).toString() + ')';
+        this.drawctx.font = '44px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
+        var text = this.drag_range_est[0].toFixed(2);
+        var text_w = this.drawctx.measureText(text).width;
+        this.drawctx.fillText(text, (this.drag_start_x + this.drag_end_x - text_w) / 2, h * (0.382 + 0.05 * i));
+        this.drawctx.font = '24px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
+        text = 'err ' + (this.drag_range_est[1] * 100).toFixed(1);
+        text_w = this.drawctx.measureText(text).width;
+        this.drawctx.fillText(text, (this.drag_start_x + this.drag_end_x - text_w) / 2, h * ((i <= 5 ? 0.502 : 0.262) + 0.05 * i));
+      }
     }
   };
   bpm.handle_mousedown = function (e) {
@@ -301,6 +323,8 @@
       var x = e.clientX - this.canvas.offsetLeft;
       this.is_dragging = true;
       this.drag_start_x = x;
+      this.drag_current_x = x;
+      this.drag_end_time = -1;
       this.drag_start_time = Date.now();
       window.requestAnimationFrame(this.ticker);
     }
@@ -313,9 +337,22 @@
   };
   bpm.handle_mouseup = function (e) {
     if (this.is_results_displayed) {
+      var w = this.canvas.clientWidth;
       var x = e.clientX - this.canvas.offsetLeft;
       this.is_dragging = false;
       this.drag_end_time = Date.now();
+      this.drag_end_x = x;
+      if (this.drag_start_x > this.drag_end_x) {
+        var t = this.drag_end_x;
+        this.drag_end_x = this.drag_start_x;
+        this.drag_start_x = t;
+      }
+      var st = Math.min(this.records.length - 1, Math.max(0, Math.ceil((this.drag_start_x - 4) / ((w - 8) / (this.records.length - 1)))));
+      var ed = Math.min(this.records.length - 1, Math.max(0, Math.floor((this.drag_end_x - 4) / ((w - 8) / (this.records.length - 1)))));
+      if (ed < st + 1) {
+        this.drag_end_time -= 3000; // Do not hold if few points are selected.
+      }
+      this.drag_range_est = get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, st, ed)
     }
   };
 
@@ -411,6 +448,7 @@
     ret.drag_start_time = -1;
     ret.drag_current_x = -1;
     ret.drag_end_time = -1;
+    ret.drag_range_est = [0, 0];
     ret.handle_mousedown = bpm.handle_mousedown;
     canvas.addEventListener('mousedown', (function (_self) { return function (e) { _self.handle_mousedown(e); }; })(ret));
     ret.handle_mousemove = bpm.handle_mousemove;
