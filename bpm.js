@@ -51,7 +51,7 @@
     //        / sqrt((n * (Sigma i^2) - (Sigma i) ^ 2) * (n * (Sigma a[i]^2) - (Sigma a[i]) ^ 2))
     var pcc = (n * intv_wgh - n * avg_x * intv_sum)
               / Math.sqrt((n * sigma_i_sqr - n * n * avg_x * avg_x) * (n * intv_sqr - intv_sum * intv_sum));
-    return [numr / deno, Math.pow(pcc, 5)];
+    return [numr / deno, 1 - Math.pow(pcc, 6)];
   };
 
   bpm.process_pat = function (time) {
@@ -84,9 +84,34 @@
     this.pfx_wgh[this.records.length - 1] = this.pfx_wgh[this.records.length - 2] + time * (this.records.length - 1);
     this.pfx_sqr[this.records.length - 1] = this.pfx_sqr[this.records.length - 2] + time * time;
     // [3] Dynamic programming
+    // Pull: f[i, k] = min[0 <= j < i - 8] { f[j, k - 1] + err[j + 1, i] }
+    var cur_row = [], cur_row_prec = [], cur_val, cur_min, min_idx;
+    if (this.records.length < 8) {
+      cur_row[1] = Infinity;
+    } else {
+      cur_row[1] = get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, 0, this.records.length - 1)[1];
+    }
+    cur_row_prec[1] = -1;
+    for (var k = 2; k < 10; ++k) {
+      cur_min = Infinity;
+      min_idx = -1;
+      for (var j = 0; j < this.records.length - 8; ++j) { // or -9? Whatever.
+        cur_val = this.dyn_pro[j][k - 1] + get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, j + 1, this.records.length - 1)[1];
+        if (cur_min > cur_val) {
+          cur_min = cur_val;
+          min_idx = j;
+        }
+      }
+      cur_row[k] = cur_min;
+      cur_row_prec[k] = min_idx;
+    }
+    this.dyn_pro.push(cur_row);
+    this.dyn_pro_route.push(cur_row_prec);
   };
 
   bpm.calc_results = function () {
+    console.log(this.dyn_pro);
+    console.log(this.dyn_pro_route);
     var result = get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, 0, this.records.length - 1);
     console.log(60000.0 / result[0]);
     console.log(result[1]);
@@ -249,6 +274,8 @@
     ret.pfx_sum = []; ret.pfx_sum[-1] = 0;
     ret.pfx_wgh = []; ret.pfx_wgh[-1] = 0;
     ret.pfx_sqr = []; ret.pfx_sqr[-1] = 0;
+    ret.dyn_pro = [];
+    ret.dyn_pro_route = [];
     ret.is_finished = false;
     // Methods
     ret.process_pat = bpm.process_pat;
