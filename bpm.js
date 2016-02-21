@@ -239,7 +239,7 @@
         this._p_y[i] = h - 4 - (h - 8) * this.records[i] / (this.records[this.records.length - 1]);
       }
     }
-    var cur_idx = Math.min(this.records.length, Math.floor(dt / 1500 * this.records.length));
+    var cur_idx = Math.min(this.records.length, Math.floor((dt - 300) / 1200 * this.records.length));
     for (var i = 0; i < cur_idx; ++i) {
       this.drawctx.beginPath();
       this.drawctx.arc(this._p_x[i], this._p_y[i], 4, 0, 2 * Math.PI);
@@ -252,7 +252,7 @@
       }
     }
     if (dt < 1500) {
-      var prog = (dt / 1500 * this.records.length - cur_idx);
+      var prog = ((dt - 300) / 1200 * this.records.length - cur_idx);
       this.drawctx.beginPath();
       this.drawctx.arc(this._p_x[cur_idx], this._p_y[cur_idx], 4 * prog, 0, 2 * Math.PI);
       this.drawctx.fill();
@@ -297,7 +297,7 @@
     // Dragging?
     if (this.is_dragging || this.drag_end_time >= Date.now() - 3000) {
       var c = this.is_dragging ? { r: 0, g: 0, b: 0 } :
-        rgb_interpolate_obj({ r: 0, g: 0, b: 0 }, get_tempo_colour(this.drag_range_est[0]), (Date.now() - this.drag_end_time) / 180);
+        rgb_interpolate_obj({ r: 0, g: 0, b: 0 }, get_tempo_colour(60000.0 / this.drag_range_est[0]), (Date.now() - this.drag_end_time) / 180);
       var opacity = this.is_dragging ? 1 : Math.min(1, (3000 - Date.now() + this.drag_end_time) / 180);
       this.drawctx.fillStyle = 'rgba(' + c.r + ',' + c.g + ',' + c.b + ', ' + (opacity * 0.3).toString() + ')';
       var x1 = Math.min(this.drag_start_x, this.drag_current_x),
@@ -307,11 +307,11 @@
         opacity = Math.min(opacity, (Date.now() - this.drag_end_time) / 180);
         this.drawctx.fillStyle = 'rgba(0, 0, 0, ' + (opacity * 0.66).toString() + ')';
         this.drawctx.font = '44px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
-        var text = this.drag_range_est[0].toFixed(2);
+        var text = (60000.0 / this.drag_range_est[0]).toFixed(2);
         var text_w = this.drawctx.measureText(text).width;
         this.drawctx.fillText(text, (this.drag_start_x + this.drag_end_x - text_w) / 2, h * (0.382 + 0.05 * i));
         this.drawctx.font = '24px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
-        text = 'err ' + (this.drag_range_est[1] * 100).toFixed(1);
+        text = 'err ' + (this.drag_range_est[1] * 100).toFixed(2) + '%';
         text_w = this.drawctx.measureText(text).width;
         this.drawctx.fillText(text, (this.drag_start_x + this.drag_end_x - text_w) / 2, h * ((i <= 5 ? 0.502 : 0.262) + 0.05 * i));
       }
@@ -324,8 +324,10 @@
       this.is_dragging = true;
       this.drag_start_x = x;
       this.drag_current_x = x;
-      this.drag_end_time = -1;
       this.drag_start_time = Date.now();
+      if (this.drag_end_time >= Date.now() - 3000)
+        this.drag_start_time -= 180;
+      this.drag_end_time = -1;
       window.requestAnimationFrame(this.ticker);
     }
   };
@@ -342,13 +344,11 @@
       this.is_dragging = false;
       this.drag_end_time = Date.now();
       this.drag_end_x = x;
-      if (this.drag_start_x > this.drag_end_x) {
-        var t = this.drag_end_x;
-        this.drag_end_x = this.drag_start_x;
-        this.drag_start_x = t;
-      }
-      var st = Math.min(this.records.length - 1, Math.max(0, Math.ceil((this.drag_start_x - 4) / ((w - 8) / (this.records.length - 1)))));
-      var ed = Math.min(this.records.length - 1, Math.max(0, Math.floor((this.drag_end_x - 4) / ((w - 8) / (this.records.length - 1)))));
+      var x1, x2;
+      x1 = Math.min(this.drag_start_x, this.drag_end_x);
+      x2 = Math.max(this.drag_start_x, this.drag_end_x);
+      var st = Math.min(this.records.length - 1, Math.max(0, Math.ceil((x1 - 4) / ((w - 8) / (this.records.length - 1)))));
+      var ed = Math.min(this.records.length - 1, Math.max(0, Math.floor((x2 - 4) / ((w - 8) / (this.records.length - 1)))));
       if (ed < st + 1) {
         this.drag_end_time -= 3000; // Do not hold if few points are selected.
       }

@@ -3,9 +3,9 @@
 Yet another probably-more-precise music tempo analysis based on HTML/JavaScript  
 さらにもう一つのテンポアナライザ、おそらくより正確になります。HTML/JavaScript に基づきます
 
-## :heavy_check_mark: Under construction
+## :heavy_check_mark: Alpha version released
 
-USACO 弃坑啦 ◡ ヽ(`Д´)ﾉ ┻━┻ 
+啊啊啊不要在意这混乱的代码(/\_<) 有空一定会整理的！(/\_<)
 
 ## 算法
 
