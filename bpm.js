@@ -29,29 +29,6 @@
     if (x <= 0) return a; else if (x >= 1) return b; else return a + (b - a) * x;
   };
 
-  bpm.calc_estimation = function (dt) {
-    var estimation_str = '---';
-    if (this.records.length > 8) {
-      // Average of:
-      // (1) Median of the intervals
-      // (2) Slope of line P0_P8
-      var intv_list = [0, 0, 0, 0, 0, 0, 0, 0];
-      for (var i = 0; i < 8; ++i)
-        intv_list[i] = this.records[this.records.length - 1 - i] - this.records[this.records.length - 2 - i];
-      intv_list.sort(function (a, b) { return a - b; });
-      // (3) Ignore cases where the beats are unstable
-      if (intv_list[7] - intv_list[0] <= intv_list[7] * 0.5) {
-        var e1 = 60000.0 / ((intv_list[3] + intv_list[4]) / 2);
-        var e2 = 60000.0 / ((this.records[this.records.length - 1] - this.records[this.records.length - 9]) / 8);
-        var estimation = (e1 + e2) / 2;
-        estimation_str = Math.round(estimation).toString();
-      }
-    }
-    while (estimation_str.length < 3) estimation_str = ' ' + estimation_str;
-    this.last_eststr = this.cur_eststr;
-    this.cur_eststr = estimation_str;
-  };
-
   var get_regression = function (sum, wgh, sqr, l, r) {
     var n = r - l + 1;
     var avg_x = (l + r) / 2;
@@ -76,18 +53,41 @@
               / Math.sqrt((n * sigma_i_sqr - n * n * avg_x * avg_x) * (n * intv_sqr - intv_sum * intv_sum));
     return [numr / deno, Math.pow(pcc, 5)];
   };
-  bpm.calc_results = function () {
-    for (var i = 1; i < this.records.length; ++i) this.records[i] -= this.records[0];
-    var pfx_sum = [ 0 ];
-    var pfx_wgh = [ 0 ];
-    var pfx_sqr = [ 0 ];
-    for (var i = 1; i < this.records.length; ++i) {
-      pfx_sum[i] = pfx_sum[i - 1] + this.records[i];
-      pfx_wgh[i] = pfx_wgh[i - 1] + this.records[i] * i;
-      pfx_sqr[i] = pfx_sqr[i - 1] + this.records[i] * this.records[i];
+
+  bpm.process_pat = function (time) {
+    if (this.start_time === -1) this.start_time = time;
+    time -= this.start_time;
+    this.records.push(time);
+    // [1] Calculate estimations
+    var estimation_str = '---';
+    if (this.records.length > 8) {
+      // Average of:
+      // (1) Median of the intervals
+      // (2) Slope of line P0_P8
+      var intv_list = [0, 0, 0, 0, 0, 0, 0, 0];
+      for (var i = 0; i < 8; ++i)
+        intv_list[i] = this.records[this.records.length - 1 - i] - this.records[this.records.length - 2 - i];
+      intv_list.sort(function (a, b) { return a - b; });
+      // (3) Ignore cases where the beats are unstable
+      if (intv_list[7] - intv_list[0] <= intv_list[7] * 0.5) {
+        var e1 = 60000.0 / ((intv_list[3] + intv_list[4]) / 2);
+        var e2 = 60000.0 / ((this.records[this.records.length - 1] - this.records[this.records.length - 9]) / 8);
+        var estimation = (e1 + e2) / 2;
+        estimation_str = Math.round(estimation).toString();
+      }
     }
-    pfx_sum[-1] = pfx_wgh[-1] = pfx_sqr[-1] = 0;
-    var result = get_regression(pfx_sum, pfx_wgh, pfx_sqr, 0, this.records.length - 1);
+    while (estimation_str.length < 3) estimation_str = ' ' + estimation_str;
+    this.last_eststr = this.cur_eststr;
+    this.cur_eststr = estimation_str;
+    // [2] Update regression
+    this.pfx_sum[this.records.length - 1] = this.pfx_sum[this.records.length - 2] + time;
+    this.pfx_wgh[this.records.length - 1] = this.pfx_wgh[this.records.length - 2] + time * (this.records.length - 1);
+    this.pfx_sqr[this.records.length - 1] = this.pfx_sqr[this.records.length - 2] + time * time;
+    // [3] Dynamic programming
+  };
+
+  bpm.calc_results = function () {
+    var result = get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, 0, this.records.length - 1);
     console.log(60000.0 / result[0]);
     console.log(result[1]);
   };
@@ -214,8 +214,7 @@
   bpm.pat = function () {
     if (this.is_finished) return;
     this.last_pat = Date.now();
-    this.records.push(this.last_pat);
-    this.calc_estimation();
+    this.process_pat(this.last_pat);
     window.requestAnimationFrame(this.ticker);
   };
 
@@ -245,10 +244,14 @@
     ret.last_pat = Date.now();
     ret.last_eststr = '---';
     ret.cur_eststr = '---';
+    ret.start_time = -1;
     ret.records = [];
+    ret.pfx_sum = []; ret.pfx_sum[-1] = 0;
+    ret.pfx_wgh = []; ret.pfx_wgh[-1] = 0;
+    ret.pfx_sqr = []; ret.pfx_sqr[-1] = 0;
     ret.is_finished = false;
     // Methods
-    ret.calc_estimation = bpm.calc_estimation;
+    ret.process_pat = bpm.process_pat;
     ret.calc_results = bpm.calc_results;
     ret.draw_history_and_estimation = bpm.draw_history_and_estimation;
     ret.draw_finishing = bpm.draw_finishing;
