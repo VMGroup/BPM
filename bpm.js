@@ -74,7 +74,7 @@
     //        / sqrt((n * (Sigma i^2) - (Sigma i) ^ 2) * (n * (Sigma a[i]^2) - (Sigma a[i]) ^ 2))
     var pcc = (n * intv_wgh - n * avg_x * intv_sum)
               / Math.sqrt((n * sigma_i_sqr - n * n * avg_x * avg_x) * (n * intv_sqr - intv_sum * intv_sum));
-    return [numr / deno, pcc];
+    return [numr / deno, Math.pow(pcc, 5)];
   };
   bpm.calc_results = function () {
     for (var i = 1; i < this.records.length; ++i) this.records[i] -= this.records[0];
