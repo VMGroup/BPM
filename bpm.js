@@ -52,18 +52,30 @@
     this.cur_eststr = estimation_str;
   };
 
+  var get_regression = function (sum, wgh, l, r) {
+    var n = r - l + 1;
+    var avg_x = (l + r) / 2;
+    var avg_y = (sum[r] - sum[l - 1]) / n;
+    // numr = Sigma[i = l..r] (i - avg_x) * (a[i] - avg_y)
+    //      = (Sigma i * a[i]) - (avg_x * Sigma a[i])
+    //        + (avg_y * Sigma (i - avg_x))   -> equals 0
+    var numr = (wgh[r] - wgh[l - 1]) - ((avg_x + 1) * (sum[r] - sum[l - 1]));
+    // deno = Sigma[i = l..r] (i - avg_x) * (i - avg_x)
+    //      = Sigma[i = l..r] (i^2 - 2 * i * avg_x + avg_x^2)
+    //      = (Sigma i^2) - 2 * avg_x * (Sigma i) + n * avg_x^2
+    //      = (Sigma i^2) - n * avg_x^2
+    var deno = (r * (r + 1) * (r + r + 1) - l * (l - 1) * (l + l - 1)) / 6 - n * avg_x * avg_x;
+    return numr / deno;
+  };
   bpm.calc_results = function () {
-    var n = this.records.length;
-    var avg_x = 0, avg_y = 0;
-    avg_x = (n - 1) / 2;  // 0-indexed
-    for (var i = 0; i < n; ++i) avg_y += this.records[i];
-    avg_y /= n;
-    var numr = 0, deno = 0;
-    for (var i = 0; i < n; ++i) {
-      numr += (i - avg_x) * (this.records[i] - avg_y);
-      deno += (i - avg_x) * (i - avg_x);
+    var pfx_sum = [ this.records[0] ];
+    var pfx_wgh = [ this.records[0] ];
+    for (var i = 1; i < this.records.length; ++i) {
+      pfx_sum[i] = pfx_sum[i - 1] + this.records[i];
+      pfx_wgh[i] = pfx_wgh[i - 1] + this.records[i] * (i + 1);
     }
-    console.log(60000.0 / (numr / deno));
+    pfx_sum[-1] = pfx_wgh[-1] = 0;
+    console.log(60000.0 / get_regression(pfx_sum, pfx_wgh, 0, this.records.length - 1));
   };
 
   bpm.draw_history_and_estimation = function (dt) {
