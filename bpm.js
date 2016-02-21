@@ -281,6 +281,28 @@
         this.drawctx.fillText(text, (last_x + cur_x - text_w) / 2, h * ((i <= 5 ? 0.502 : 0.262) + 0.05 * i));
         last_x = cur_x;
       }
+      if (dt > 2000 + this.final_results.length * 180) this.is_results_displayed = true;
+    }
+  };
+  bpm.handle_mousedown = function (e) {
+    if (this.is_results_displayed) {
+      // Tested. Will work when canvas is in multiple cascaded div's or something.
+      var x = e.clientX - this.canvas.offsetLeft, y = e.clientY - this.canvas.offsetTop;
+      console.log(this, e, x, y);
+      this.is_dragging = true;
+    }
+  };
+  bpm.handle_mousemove = function (e) {
+    if (this.is_dragging) {
+      var x = e.clientX - this.canvas.offsetLeft, y = e.clientY - this.canvas.offsetTop;
+      console.log(x, y);
+    }
+  };
+  bpm.handle_mouseup = function (e) {
+    if (this.is_results_displayed) {
+      var x = e.clientX - this.canvas.offsetLeft, y = e.clientY - this.canvas.offsetTop;
+      console.log(x, y);
+      this.is_dragging = false;
     }
   };
 
@@ -338,7 +360,7 @@
       return false;
     }
     bpm.init_display(canvas);
-	
+
     var ret = {};
     // Properties
     ret.canvas = canvas;
@@ -354,6 +376,7 @@
     ret.dyn_pro = [];
     ret.dyn_pro_route = [];
     ret.is_finished = false;
+    ret.is_results_displayed = false;
     // Methods
     ret.process_pat = bpm.process_pat;
     ret.calc_results = bpm.calc_results;
@@ -365,6 +388,14 @@
     // Timers
     ret.ticker = (function (_ret) { return function () { _ret.refresh_display(); }; })(ret);
     window.requestAnimationFrame(ret.ticker);
+    // Event handlers
+    ret.is_dragging = false;
+    ret.handle_mousedown = bpm.handle_mousedown;
+    canvas.addEventListener('mousedown', (function (_self) { return function (e) { _self.handle_mousedown(e); }; })(ret));
+    ret.handle_mousemove = bpm.handle_mousemove;
+    canvas.addEventListener('mousemove', (function (_self) { return function (e) { _self.handle_mousemove(e); }; })(ret));
+    ret.handle_mouseup = bpm.handle_mouseup;
+    canvas.addEventListener('mouseup', (function (_self) { return function (e) { _self.handle_mouseup(e); }; })(ret));
     return ret;
   };
 
