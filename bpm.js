@@ -397,6 +397,7 @@
   };
 
   bpm.finish = function () {
+    if (this.records.length < 8) return;
     this.is_finished = true;
     this.last_pat = Date.now();
     this.calc_results();
