@@ -226,8 +226,8 @@
   };
   var get_tempo_colour = function (bpm) {
     // Map BPM to UOJ rating
-    // [0, 96, 196] → [540, 1500, 2500]
-    return get_rating_colour(bpm * 10 + 540);
+    // [0, 108, 208] → [540, 1500, 2500]
+    return get_rating_colour(bpm * 10 + 420);
   };
   bpm.draw_finishing = function (dt) {
     var w = this.canvas.clientWidth, h = this.canvas.clientHeight;
