@@ -62,11 +62,7 @@
     return [numr / deno, 1 - Math.pow(pcc, 6)];
   };
 
-  bpm.process_pat = function (time) {
-    if (this.start_time === -1) this.start_time = time;
-    time -= this.start_time;
-    this.records.push(time);
-    // [1] Calculate estimations
+  bpm.calc_estimation = function () {
     var estimation_str = '---';
     if (this.records.length > 8) {
       // Average of:
@@ -87,6 +83,13 @@
     while (estimation_str.length < 3) estimation_str = ' ' + estimation_str;
     this.last_eststr = this.cur_eststr;
     this.cur_eststr = estimation_str;
+  };
+  bpm.process_pat = function (time) {
+    if (this.start_time === -1) this.start_time = time;
+    time -= this.start_time;
+    this.records.push(time);
+    // [1] Calculate estimations
+    this.calc_estimation();
     // [2] Update regression
     this.pfx_sum[this.records.length - 1] = this.pfx_sum[this.records.length - 2] + time;
     this.pfx_wgh[this.records.length - 1] = this.pfx_wgh[this.records.length - 2] + time * (this.records.length - 1);
@@ -113,19 +116,19 @@
       cur_row[k] = cur_min;
       cur_row_prec[k] = min_idx;
     }
-    this.dyn_pro.push(cur_row);
-    this.dyn_pro_route.push(cur_row_prec);
+    this.dyn_pro[this.records.length - 1] = cur_row;
+    this.dyn_pro_route[this.records.length - 1] = cur_row_prec;
   };
 
   bpm.calc_results = function () {
     var min_err = Infinity, min_err_k = -1;
     for (var i = 1; i < 10; ++i) {
-      if (min_err > this.dyn_pro[this.dyn_pro.length - 1][i]) {
-        min_err = this.dyn_pro[this.dyn_pro.length - 1][i];
+      if (min_err > this.dyn_pro[this.records.length - 1][i]) {
+        min_err = this.dyn_pro[this.records.length - 1][i];
         min_err_k = i;
       }
     }
-    var route = [], cur_idx = this.dyn_pro.length - 1;
+    var route = [], cur_idx = this.records.length - 1;
     for (; cur_idx !== -1; cur_idx = this.dyn_pro_route[cur_idx][min_err_k--]) {
       route.push(cur_idx);
     }
@@ -146,7 +149,7 @@
     this.drawctx.fillStyle = '#bbbb88';
     for (var i = 0; i < Math.min(history_ct, this.records.length - 1); ++i) {
       this.drawctx.beginPath();
-      var x = w - i * 160 - 80 + Math.max(0, Math.pow(1 - dt / 200, 3)) * 160 + 10,
+      var x = w - i * 160 - 80 + (this.last_pat_is_undo ? -1 : 1) * Math.max(0, Math.pow(1 - dt / 200, 3)) * 160 + 10,
           y = h - h * (this.records[this.records.length - 1 - i] - this.records[this.records.length - 2 - i]) / 1500;
       if (this.is_finished) {
         x = w - i * 160 - 70;
@@ -367,7 +370,7 @@
       // #ccddaa -> #ffffcc
       if (this.records.length === 0) {
         this.drawctx.fillStyle = '#ccddaa';
-      } else if (this.records.length === 1) {
+      } else if (this.records.length === 1 && !this.last_pat_is_undo) {
         this.drawctx.fillStyle = rgb_interpolate(0xcc, 0xdd, 0xaa, 0xff, 0xff, 0xcc, dt / 100);
       } else {
         this.drawctx.fillStyle = '#ffffcc';
@@ -392,7 +395,18 @@
   bpm.pat = function () {
     if (this.is_finished) return;
     this.last_pat = Date.now();
+    this.last_pat_is_undo = false;
     this.process_pat(this.last_pat);
+    window.requestAnimationFrame(this.ticker);
+  };
+
+  bpm.undo = function () {
+    if (this.records.length <= 1) return;
+    if (this.is_finished) return;
+    this.last_pat = Date.now();
+    this.last_pat_is_undo = true;
+    this.records.pop();
+    this.calc_estimation();
     window.requestAnimationFrame(this.ticker);
   };
 
@@ -421,6 +435,7 @@
     ret.canvas = canvas;
     ret.drawctx = canvas.getContext('2d');
     ret.last_pat = Date.now();
+    ret.last_pat_is_undo = false;
     ret.last_eststr = '---';
     ret.cur_eststr = '---';
     ret.start_time = -1;
@@ -433,12 +448,14 @@
     ret.is_finished = false;
     ret.is_results_displayed = false;
     // Methods
+    ret.calc_estimation = bpm.calc_estimation;
     ret.process_pat = bpm.process_pat;
     ret.calc_results = bpm.calc_results;
     ret.draw_history_and_estimation = bpm.draw_history_and_estimation;
     ret.draw_finishing = bpm.draw_finishing;
     ret.refresh_display = bpm.refresh_display;
     ret.pat = bpm.pat;
+    ret.undo = bpm.undo;
     ret.finish = bpm.finish;
     // Timers
     ret.ticker = (function (_ret) { return function () { _ret.refresh_display(); }; })(ret);
