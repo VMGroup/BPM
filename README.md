@@ -46,6 +46,8 @@ Yet another probably-more-precise music tempo analysis based on HTML/JavaScript
 
 然后窝们就可以愉快地在第 _i_ 次拍击之后算出 `f[i, *]` 的值啦～单次拍击处理过程时间复杂度 _O_(_n_ · _k_<sub>max</sub>)
 
+实现的时候为避免段间衔接时出现奇怪的误差，计算所有 `err` 的时候都截去了头尾各两个记录点
+
 ### 线性回归
 
 `est` 和 `err` 的值怎么办捏？  

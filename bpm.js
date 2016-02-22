@@ -97,14 +97,14 @@
     if (this.records.length < 8) {
       cur_row[1] = Infinity;
     } else {
-      cur_row[1] = get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, 0, this.records.length - 1)[1];
+      cur_row[1] = get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, 2, this.records.length - 3)[1];
     }
     cur_row_prec[1] = -1;
     for (var k = 2; k < 10; ++k) {
       cur_min = Infinity;
       min_idx = -1;
       for (var j = 0; j < this.records.length - 8; ++j) { // or -9? Whatever.
-        cur_val = this.dyn_pro[j][k - 1] + get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, j + 1, this.records.length - 1)[1];
+        cur_val = this.dyn_pro[j][k - 1] + get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, j + 3, this.records.length - 3)[1];
         if (cur_min > cur_val) {
           cur_min = cur_val;
           min_idx = j;
@@ -134,7 +134,7 @@
     // XXX: Use map() or reduce()?
     this.final_results = [];
     for (var i = 1; i < route.length; ++i) {
-      this.final_results.push([route[i], 60000.0 / get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, route[i - 1], route[i])[0]]);
+      this.final_results.push([route[i], 60000.0 / get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, route[i - 1] + 2, route[i] - 2)[0]]);
     }
     console.log(this.final_results);
   };
