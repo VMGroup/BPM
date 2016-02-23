@@ -147,10 +147,13 @@
     // History
     var history_ct = Math.ceil(w / 160) + 1;
     this.drawctx.fillStyle = '#bbbb88';
-    for (var i = 0; i < Math.min(history_ct, this.records.length - 1); ++i) {
+    for (var i = (this.last_pat_is_undo ? -1 : 0); i < Math.min(history_ct, this.records.length - 1); ++i) {
       this.drawctx.beginPath();
+      var record_delta = (this.last_pat_is_undo && i === -1) ?
+        (this.last_undo_record - this.records[this.records.length - 1]) :
+        (this.records[this.records.length - 1 - i] - this.records[this.records.length - 2 - i]);
       var x = w - i * 160 - 80 + (this.last_pat_is_undo ? -1 : 1) * Math.max(0, Math.pow(1 - dt / 200, 3)) * 160 + 10,
-          y = h - h * (this.records[this.records.length - 1 - i] - this.records[this.records.length - 2 - i]) / 1500;
+          y = h - h * record_delta / 1500;
       if (this.is_finished) {
         x = w - i * 160 - 70;
         // Ease / back (x = 2.5): http://javascript.info/tutorial/animation
@@ -405,6 +408,7 @@
     if (this.is_finished) return;
     this.last_pat = Date.now();
     this.last_pat_is_undo = true;
+    this.last_undo_record = this.records[this.records.length - 1];
     this.records.pop();
     this.calc_estimation();
     window.requestAnimationFrame(this.ticker);
@@ -436,6 +440,7 @@
     ret.drawctx = canvas.getContext('2d');
     ret.last_pat = Date.now();
     ret.last_pat_is_undo = false;
+    ret.last_undo_record = -1;
     ret.last_eststr = '---';
     ret.cur_eststr = '---';
     ret.start_time = -1;
