@@ -274,7 +274,7 @@
     var w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     // 0 ~ 1.5 s: Display all history
     // 1.5 ~ 2 s: Sleep
-    this.drawctx.fillStyle = 'rgba(0, 0, 0, 128)';
+    this.drawctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
     if (!this._p_x) {
       this._p_x = [ 4 ];
       this._p_y = [ h - 4 ];
