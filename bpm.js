@@ -203,6 +203,8 @@
         } else {
           y = h + 10;
         }
+      } else if (this.breaking) {
+        x = w - i * 160 - 70;
       }
       this.drawctx.arc(x, y, 10, 0, 2 * Math.PI);
       this.drawctx.fill();
@@ -222,7 +224,7 @@
     this.drawctx.textBaseline = 'top';
     text_size = this.drawctx.measureText('m');  // Assertion: font must be monospace
     for (var i = 0; i < 3; ++i) {
-      if (!this.is_finished && dt < 200 && this.cur_eststr[i] !== this.last_eststr[i]) {
+      if (!this.is_finished && !this.breaking && dt < 200 && this.cur_eststr[i] !== this.last_eststr[i]) {
         var dir = (this.cur_eststr[i] < this.last_eststr[i] ? 1 : -1);
         this.drawctx.fillStyle = 'rgba(135, 135, 85, ' + (1 - dt / 200).toString() + ')';
         this.drawctx.fillText(this.last_eststr[i], w - text_size.width * (3 - i) - 6, h * 0.5 + dir * 20 * ease_cubic_in(dt / 200));
@@ -416,7 +418,17 @@
       } else if (this.records.length === 1 && !this.last_pat_is_undo) {
         this.drawctx.fillStyle = rgb_interpolate(0xcc, 0xdd, 0xaa, 0xff, 0xff, 0xcc, dt / 100);
       } else {
-        this.drawctx.fillStyle = '#ffffcc';
+        if (this.breaking) {
+          if (dt <= 150) {
+            this.drawctx.fillStyle = rgb_interpolate(0xff, 0xff, 0xcc, 0xdd, 0xcc, 0xbb, dt / 150);
+          } else if (dt <= 300) {
+            this.drawctx.fillStyle = rgb_interpolate(0xdd, 0xcc, 0xbb, 0xff, 0xff, 0xcc, (dt - 150) / 150);
+          } else {
+            this.drawctx.fillStyle = '#ffffcc';
+          }
+        } else {
+          this.drawctx.fillStyle = '#ffffcc';
+        }
       }
     }
     this.drawctx.fillRect(0, 0, w, h);
@@ -431,7 +443,7 @@
       }
     } else {
       this.draw_history_and_estimation(dt);
-      if (dt < 200) window.requestAnimationFrame(this.ticker);
+      if (dt < 200 || (this.breaking && dt < 300)) window.requestAnimationFrame(this.ticker);
     }
   };
 
@@ -464,6 +476,7 @@
   bpm.prototype.break = function () {
     if (this.records.length === 0) return;
     this.last_pat = this.breaking = Date.now();
+    window.requestAnimationFrame(this.ticker);
   };
 
   bpm.prototype.finish = function () {
