@@ -16,6 +16,7 @@
     this.last_pat = Date.now();
     this.last_pat_is_undo = false;
     this.last_undo_record = -1;
+    this.tot_break = 0;
     this.last_eststr = '---';
     this.cur_eststr = '---';
     this.start_time = -1;
@@ -437,19 +438,26 @@
     if (this.is_finished) return;
     this.last_pat = Date.now();
     this.last_pat_is_undo = false;
-    this.process_pat(this.last_pat);
+    this.process_pat(this.last_pat - this.tot_break);
     window.requestAnimationFrame(this.ticker);
   };
 
   bpm.prototype.undo = function () {
     if (this.records.length <= 1) return;
     if (this.is_finished) return;
+    this.is_breaking = false;
     this.last_pat = Date.now();
     this.last_pat_is_undo = true;
     this.last_undo_record = this.records[this.records.length - 1];
     this.records.pop();
     this.calc_estimation();
     window.requestAnimationFrame(this.ticker);
+  };
+
+  bpm.prototype.break = function () {
+    if (this.records.length <= 1) return;
+    this.tot_break += Date.now() - this.last_pat;
+    this.last_pat = Date.now();
   };
 
   bpm.prototype.finish = function () {
