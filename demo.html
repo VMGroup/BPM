@@ -9,7 +9,7 @@
     <canvas id='bpm-canvas'></canvas>
     <script src='bpm.js'></script>
     <script>
-      var meter = bpm.create('bpm-canvas');
+      var meter = new bpm('bpm-canvas');
       window.addEventListener('keydown', function (e) {
         if (e.keyCode === 90 || e.keyCode === 88) meter.pat();
         else if (e.keyCode === 8) meter.undo();

@@ -1,12 +1,51 @@
 (function (window) {
-  var bpm = {
-    // TODO: Add configuration, make customizable
+  var bpm = function (id) {
+    if (typeof id !== 'string') {
+      console.log('BPM.create(): id cannot be null');
+      return undefined;
+    }
+    var canvas = document.getElementById(id);
+    if (!canvas || canvas.tagName.toUpperCase() !== 'CANVAS') {
+      console.log('BPM.create(): id should correspond to a <canvas> element');
+      return false;
+    }
+    this.init_display(canvas);
+
+    this.canvas = canvas;
+    this.drawctx = canvas.getContext('2d');
+    this.last_pat = Date.now();
+    this.last_pat_is_undo = false;
+    this.last_undo_record = -1;
+    this.last_eststr = '---';
+    this.cur_eststr = '---';
+    this.start_time = -1;
+    this.records = [];
+    this.pfx_sum = []; this.pfx_sum[-1] = 0;
+    this.pfx_wgh = []; this.pfx_wgh[-1] = 0;
+    this.pfx_sqr = []; this.pfx_sqr[-1] = 0;
+    this.dyn_pro = [];
+    this.dyn_pro_route = [];
+    this.is_finished = false;
+    this.is_results_displayed = false;
+    // Timers
+    this.ticker = (function (_ret) { return function () { _ret.refresh_display(); }; })(this);
+    window.requestAnimationFrame(this.ticker);
+    // Event handlers and preview-related stuff
+    this.is_dragging = false;
+    this.drag_start_x = -1;
+    this.drag_start_time = -1;
+    this.drag_current_x = -1;
+    this.drag_end_time = -1;
+    this.drag_range_est = [0, 0];
+    canvas.addEventListener('mousedown', (function (_self) { return function (e) { _self.handle_mousedown(e); }; })(this));
+    canvas.addEventListener('mousemove', (function (_self) { return function (e) { _self.handle_mousemove(e); }; })(this));
+    canvas.addEventListener('mouseup', (function (_self) { return function (e) { _self.handle_mouseup(e); }; })(this));
   };
   window.requestAnimationFrame = window.requestAnimationFrame
     || window.mozRequestAnimationFrame
     || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
 
-  bpm.init_display = function (canvas) {
+  bpm.prototype.init_display = function (canvas) {
     canvas.width = canvas.parentElement.clientWidth;
     canvas.height = 240;
   };
@@ -62,7 +101,7 @@
     return [numr / deno, 1 - Math.pow(pcc, 6)];
   };
 
-  bpm.calc_estimation = function () {
+  bpm.prototype.calc_estimation = function () {
     var estimation_str = '---';
     if (this.records.length > 8) {
       // Average of:
@@ -84,7 +123,7 @@
     this.last_eststr = this.cur_eststr;
     this.cur_eststr = estimation_str;
   };
-  bpm.process_pat = function (time) {
+  bpm.prototype.process_pat = function (time) {
     if (this.start_time === -1) this.start_time = time;
     time -= this.start_time;
     this.records.push(time);
@@ -120,7 +159,7 @@
     this.dyn_pro_route[this.records.length - 1] = cur_row_prec;
   };
 
-  bpm.calc_results = function () {
+  bpm.prototype.calc_results = function () {
     var min_err = Infinity, min_err_k = -1;
     for (var i = 1; i < 10; ++i) {
       if (min_err > this.dyn_pro[this.records.length - 1][i]) {
@@ -139,10 +178,9 @@
     for (var i = 1; i < route.length; ++i) {
       this.final_results.push([route[i], 60000.0 / get_regression(this.pfx_sum, this.pfx_wgh, this.pfx_sqr, route[i - 1] + 2, route[i] - 2)[0]]);
     }
-    console.log(this.final_results);
   };
 
-  bpm.draw_history_and_estimation = function (dt) {
+  bpm.prototype.draw_history_and_estimation = function (dt) {
     var w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     // History
     var history_ct = Math.ceil(w / 160) + 1;
@@ -232,7 +270,7 @@
     // [0, 108, 208] → [540, 1500, 2500]
     return get_rating_colour(bpm * 10 + 420);
   };
-  bpm.draw_finishing = function (dt) {
+  bpm.prototype.draw_finishing = function (dt) {
     var w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     // 0 ~ 1.5 s: Display all history
     // 1.5 ~ 2 s: Sleep
@@ -323,7 +361,7 @@
       }
     }
   };
-  bpm.handle_mousedown = function (e) {
+  bpm.prototype.handle_mousedown = function (e) {
     if (this.is_results_displayed) {
       // Tested. Will work when canvas is in multiple cascaded div's or something.
       var x = e.clientX - this.canvas.offsetLeft;
@@ -337,13 +375,13 @@
       window.requestAnimationFrame(this.ticker);
     }
   };
-  bpm.handle_mousemove = function (e) {
+  bpm.prototype.handle_mousemove = function (e) {
     if (this.is_dragging) {
       var x = e.clientX - this.canvas.offsetLeft;
       this.drag_current_x = x;
     }
   };
-  bpm.handle_mouseup = function (e) {
+  bpm.prototype.handle_mouseup = function (e) {
     if (this.is_results_displayed) {
       var w = this.canvas.clientWidth;
       var x = e.clientX - this.canvas.offsetLeft;
@@ -362,7 +400,7 @@
     }
   };
 
-  bpm.refresh_display = function () {
+  bpm.prototype.refresh_display = function () {
     var w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     var dt = Date.now() - this.last_pat;
     this.drawctx.clearRect(0, 0, w, h);
@@ -395,7 +433,7 @@
     }
   };
 
-  bpm.pat = function () {
+  bpm.prototype.pat = function () {
     if (this.is_finished) return;
     this.last_pat = Date.now();
     this.last_pat_is_undo = false;
@@ -403,7 +441,7 @@
     window.requestAnimationFrame(this.ticker);
   };
 
-  bpm.undo = function () {
+  bpm.prototype.undo = function () {
     if (this.records.length <= 1) return;
     if (this.is_finished) return;
     this.last_pat = Date.now();
@@ -414,71 +452,12 @@
     window.requestAnimationFrame(this.ticker);
   };
 
-  bpm.finish = function () {
+  bpm.prototype.finish = function () {
     if (this.records.length < 8) return;
     this.is_finished = true;
     this.last_pat = Date.now();
     this.calc_results();
     window.requestAnimationFrame(this.ticker);
-  };
-
-  bpm.create = function (id) {
-    if (typeof id !== 'string') {
-      console.log('BPM.create(): id cannot be null');
-      return undefined;
-    }
-    var canvas = document.getElementById(id);
-    if (!canvas || canvas.tagName.toUpperCase() !== 'CANVAS') {
-      console.log('BPM.create(): id should correspond to a <canvas> element');
-      return false;
-    }
-    bpm.init_display(canvas);
-
-    var ret = {};
-    // Properties
-    ret.canvas = canvas;
-    ret.drawctx = canvas.getContext('2d');
-    ret.last_pat = Date.now();
-    ret.last_pat_is_undo = false;
-    ret.last_undo_record = -1;
-    ret.last_eststr = '---';
-    ret.cur_eststr = '---';
-    ret.start_time = -1;
-    ret.records = [];
-    ret.pfx_sum = []; ret.pfx_sum[-1] = 0;
-    ret.pfx_wgh = []; ret.pfx_wgh[-1] = 0;
-    ret.pfx_sqr = []; ret.pfx_sqr[-1] = 0;
-    ret.dyn_pro = [];
-    ret.dyn_pro_route = [];
-    ret.is_finished = false;
-    ret.is_results_displayed = false;
-    // Methods
-    ret.calc_estimation = bpm.calc_estimation;
-    ret.process_pat = bpm.process_pat;
-    ret.calc_results = bpm.calc_results;
-    ret.draw_history_and_estimation = bpm.draw_history_and_estimation;
-    ret.draw_finishing = bpm.draw_finishing;
-    ret.refresh_display = bpm.refresh_display;
-    ret.pat = bpm.pat;
-    ret.undo = bpm.undo;
-    ret.finish = bpm.finish;
-    // Timers
-    ret.ticker = (function (_ret) { return function () { _ret.refresh_display(); }; })(ret);
-    window.requestAnimationFrame(ret.ticker);
-    // Event handlers and preview-related stuff
-    ret.is_dragging = false;
-    ret.drag_start_x = -1;
-    ret.drag_start_time = -1;
-    ret.drag_current_x = -1;
-    ret.drag_end_time = -1;
-    ret.drag_range_est = [0, 0];
-    ret.handle_mousedown = bpm.handle_mousedown;
-    canvas.addEventListener('mousedown', (function (_self) { return function (e) { _self.handle_mousedown(e); }; })(ret));
-    ret.handle_mousemove = bpm.handle_mousemove;
-    canvas.addEventListener('mousemove', (function (_self) { return function (e) { _self.handle_mousemove(e); }; })(ret));
-    ret.handle_mouseup = bpm.handle_mouseup;
-    canvas.addEventListener('mouseup', (function (_self) { return function (e) { _self.handle_mouseup(e); }; })(ret));
-    return ret;
   };
 
   window.bpm = bpm;
