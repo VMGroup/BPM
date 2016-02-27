@@ -8,8 +8,9 @@
     <h1>Press Z or X</h1>
     <canvas id='bpm-canvas'></canvas>
     <script src='bpm.js'></script>
+    <!-- <script src='bpm.min.js'></script> -->
     <script>
-      var meter = new bpm('bpm-canvas');
+      var meter = bpm('bpm-canvas');
       window.addEventListener('keydown', function (e) {
         if (e.keyCode === 90 || e.keyCode === 88) meter.pat();
         else if (e.keyCode === 8) meter.undo();
@@ -17,8 +18,8 @@
         else if (e.keyCode === 32) meter.break();
       });
       document.getElementById('bpm-canvas').addEventListener('mousedown', function (e) {
-        if (!meter.finished) meter.pat();
-        // BPM will handle it otherwise
+        meter.pat();
+        // Let BPM do the rest of the things
       });
     </script>
   </body>

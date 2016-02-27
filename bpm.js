@@ -1,4 +1,10 @@
 (function (window) {
+  //////////  Preparations  //////////
+  var req_anim_frame = window.requestAnimationFrame
+    || window.mozRequestAnimationFrame
+    || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
+
+  //////////  Constructor  //////////
   var bpm = function (id) {
     if (typeof id !== 'string') {
       console.log('BPM.create(): id cannot be null');
@@ -31,7 +37,7 @@
     this.is_results_displayed = false;
     // Timers
     this.ticker = (function (_ret) { return function () { _ret.refresh_display(); }; })(this);
-    window.requestAnimationFrame(this.ticker);
+    req_anim_frame(this.ticker);
     // Event handlers and preview-related stuff
     this.is_dragging = false;
     this.drag_start_x = -1;
@@ -43,10 +49,11 @@
     canvas.addEventListener('mousemove', (function (_self) { return function (e) { _self.handle_mousemove(e); }; })(this));
     canvas.addEventListener('mouseup', (function (_self) { return function (e) { _self.handle_mouseup(e); }; })(this));
   };
-  window.requestAnimationFrame = window.requestAnimationFrame
-    || window.mozRequestAnimationFrame
-    || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame;
 
+  //////////  Configurations  //////////
+  bpm.font = 'Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
+
+  //////////  Protected methods and functions  //////////
   bpm.prototype.init_display = function (canvas) {
     canvas.width = canvas.parentElement.clientWidth;
     canvas.height = 240;
@@ -216,11 +223,11 @@
     } else {
       this.drawctx.fillStyle = '#999955';
     }
-    this.drawctx.font = '34px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
+    this.drawctx.font = '34px ' + bpm.font;
     this.drawctx.textBaseline = 'bottom';
     var text_size = this.drawctx.measureText('Est.');
     this.drawctx.fillText('Est.', w - text_size.width - 6, h * 0.5);
-    this.drawctx.font = '64px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
+    this.drawctx.font = '64px ' + bpm.font;
     this.drawctx.textBaseline = 'top';
     text_size = this.drawctx.measureText('m');  // Assertion: font must be monospace
     for (var i = 0; i < 3; ++i) {
@@ -259,7 +266,7 @@
   // Copyright (C) uoj.ac 2014-2016
   var get_rating_colour = function (rating) {
     if (rating < 1500) {
-      var H = 300 - (1500 - 850) * 300 / 1650, S = 30 + (1500 - 850) * 70 / 1650, V = 50 + (1500 - 850) * 50 / 1650;
+      var H = 2000/11, S = 1900/33, V = 2300/33;
       if (rating < 300) rating = 300;
       var k = (rating - 300) / 1200;
       return hsv_to_rgb({h: H + (300 - H) * (1 - k), s: (30 + (S - 30) * k) / 100, v: (50 + (V - 50) * k) / 100});
@@ -267,7 +274,7 @@
     if (rating > 2500) {
       rating = 2500;
     }
-    return hsv_to_rgb({h: 300 - (rating - 850) * 300 / 1650, s: (30 + (rating - 850) * 70 / 1650) / 100, v: (50 + (rating - 850) * 50 / 1650) / 100});
+    return hsv_to_rgb({h: (5000 - rating * 2) / 11, s: rating * 7/16500 - 2/33, v: rating / 3300 + 8/33});
   };
   var get_tempo_colour = function (bpm) {
     // Map BPM to UOJ rating
@@ -328,12 +335,12 @@
         this.drawctx.fillRect(last_x, 0, cur_x - last_x, h);
 
         this.drawctx.fillStyle = 'rgba(0, 0, 0, ' + (prog * 0.66 * drag_opacity_mult).toString() + ')';
-        this.drawctx.font = '44px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
+        this.drawctx.font = '44px ' + bpm.font;
         this.drawctx.textBaseline = 'middle';
         var text = Math.round(this.final_results[i][1]).toString();
         var text_w = this.drawctx.measureText(text).width;
         this.drawctx.fillText(text, (last_x + cur_x - text_w) / 2, h * (0.382 + 0.05 * i));
-        this.drawctx.font = '24px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
+        this.drawctx.font = '24px ' + bpm.font;
         text = (this.final_results[i][1] - Math.round(this.final_results[i][1])).toFixed(2);
         if (text[0] !== '-') text = '+' + text;
         text_w = this.drawctx.measureText(text).width;
@@ -354,11 +361,11 @@
       if (!this.is_dragging) {
         opacity = Math.min(opacity, (Date.now() - this.drag_end_time) / 180);
         this.drawctx.fillStyle = 'rgba(0, 0, 0, ' + (opacity * 0.66).toString() + ')';
-        this.drawctx.font = '44px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
+        this.drawctx.font = '44px ' + bpm.font;
         var text = (60000.0 / this.drag_range_est[0]).toFixed(2);
         var text_w = this.drawctx.measureText(text).width;
         this.drawctx.fillText(text, (this.drag_start_x + this.drag_end_x - text_w) / 2, h * (0.382 + 0.05 * i));
-        this.drawctx.font = '24px Droid Sans Mono, Source Code Pro, Menlo, Courier New, Monospace';
+        this.drawctx.font = '24px ' + bpm.font;
         text = 'err ' + (this.drag_range_est[1] * 100).toFixed(2) + '%';
         text_w = this.drawctx.measureText(text).width;
         this.drawctx.fillText(text, (this.drag_start_x + this.drag_end_x - text_w) / 2, h * ((i <= 5 ? 0.502 : 0.262) + 0.05 * i));
@@ -376,7 +383,7 @@
       if (this.drag_end_time >= Date.now() - 3000)
         this.drag_start_time -= 180;
       this.drag_end_time = -1;
-      window.requestAnimationFrame(this.ticker);
+      req_anim_frame(this.ticker);
     }
   };
   bpm.prototype.handle_mousemove = function (e) {
@@ -437,15 +444,16 @@
       if (dt < 2200 + this.final_results.length * 180
         || this.is_dragging || this.drag_end_time > Date.now() - 4000)
       {
-        window.requestAnimationFrame(this.ticker);
+        req_anim_frame(this.ticker);
       }
     } else {
       this.draw_history_and_estimation(dt);
-      if (dt < 200) window.requestAnimationFrame(this.ticker);
+      if (dt < 200) req_anim_frame(this.ticker);
     }
   };
 
-  bpm.prototype.pat = function () {
+  //////////  Public methods  //////////
+  bpm.prototype['pat'] = function () {
     if (this.is_finished) return;
     this.last_pat = Date.now();
     this.last_pat_is_undo = false;
@@ -456,10 +464,10 @@
       this.breaking = false;
     }
     this.process_pat(this.last_pat - this.tot_break);
-    window.requestAnimationFrame(this.ticker);
+    req_anim_frame(this.ticker);
   };
 
-  bpm.prototype.undo = function () {
+  bpm.prototype['undo'] = function () {
     if (this.records.length <= 1) return;
     if (this.is_finished) return;
     this.breaking = false;
@@ -468,22 +476,22 @@
     this.last_undo_record = this.records[this.records.length - 1];
     this.records.pop();
     this.calc_estimation();
-    window.requestAnimationFrame(this.ticker);
+    req_anim_frame(this.ticker);
   };
 
-  bpm.prototype.break = function () {
+  bpm.prototype['break'] = function () {
     if (this.records.length === 0) return;
     this.last_pat = this.breaking = Date.now();
-    window.requestAnimationFrame(this.ticker);
+    req_anim_frame(this.ticker);
   };
 
-  bpm.prototype.finish = function () {
+  bpm.prototype['finish'] = function () {
     if (this.records.length < 8) return;
     this.is_finished = true;
     this.last_pat = Date.now();
     this.calc_results();
-    window.requestAnimationFrame(this.ticker);
+    req_anim_frame(this.ticker);
   };
 
-  window.bpm = bpm;
+  window['bpm'] = function (id) { return new bpm(id); };
 })(window);
