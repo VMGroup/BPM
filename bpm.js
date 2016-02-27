@@ -419,10 +419,8 @@
         this.drawctx.fillStyle = rgb_interpolate(0xcc, 0xdd, 0xaa, 0xff, 0xff, 0xcc, dt / 100);
       } else {
         if (this.breaking) {
-          if (dt <= 150) {
-            this.drawctx.fillStyle = rgb_interpolate(0xff, 0xff, 0xcc, 0xdd, 0xcc, 0xbb, dt / 150);
-          } else if (dt <= 300) {
-            this.drawctx.fillStyle = rgb_interpolate(0xdd, 0xcc, 0xbb, 0xff, 0xff, 0xcc, (dt - 150) / 150);
+          if (dt <= 160) {
+            this.drawctx.fillStyle = rgb_interpolate(0xee, 0xee, 0xaa, 0xff, 0xff, 0xcc, Math.abs(80 - dt) / 80);
           } else {
             this.drawctx.fillStyle = '#ffffcc';
           }
@@ -443,7 +441,7 @@
       }
     } else {
       this.draw_history_and_estimation(dt);
-      if (dt < 200 || (this.breaking && dt < 300)) window.requestAnimationFrame(this.ticker);
+      if (dt < 200) window.requestAnimationFrame(this.ticker);
     }
   };
 
