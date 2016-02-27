@@ -462,7 +462,7 @@
   };
 
   bpm.prototype.break = function () {
-    if (this.records.length <= 1) return;
+    if (this.records.length === 0) return;
     this.last_pat = this.breaking = Date.now();
   };
 
